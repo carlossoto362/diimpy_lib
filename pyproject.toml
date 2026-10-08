@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "diimpy"
+version = "0.3.0"
+description = "Bayesian inversion tools for ocean colour"
+readme = "README.md"
+requires-python = ">=3.8"
+
+dependencies = [
+    "ConfigSpace>=1.1.1",
+    "matplotlib>=3.7",
+    "matplotlib-inline>=0.1.7",
+    "mdurl>=0.1.2",
+    "multiprocess>=0.70.16",
+    "numpy>=1.24",
+    "networkx>=2.8.8",
+    "pandas>=2",
+    "ray>=2.1",
+    "scipy>=1.1",
+    "seaborn>=0.13.2",
+    "sympy>=1.12",
+    "pvlib>=0.11.0",
+    "tqdm>=4.66.5",
+    "pyarrow",
+    "tensorboardX",
+    "netCDF4",
+    "mpi4py",
+    "numba",
+    "scikit-learn",
+    "geopy",
+    "torch"
+]
+
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[tool.setuptools.package-data]
+diimpy = [
+    "settings/lambdas",
+    "settings/*.dat",
+    "settings/npy_data/*.pt",
+    "settings/*.pt",
+    "settings/*csv",
+]

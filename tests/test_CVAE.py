@@ -1,0 +1,49 @@
+
+
+
+from torch.utils.data import DataLoader
+from diimpy.read_data_module import read_constants,customTensorData
+from diimpy.settings import DEFAULT_SETTINGS_DIR
+from diimpy.CVAE_final import NN_second_layer
+from pathlib import Path
+import torch
+import warnings
+warnings.filterwarnings("ignore")
+import matplotlib.pyplot as plt
+import numpy as np
+
+if __name__ == "__main__":
+    model = NN_second_layer()
+    model.load_state_dict(torch.load(DEFAULT_SETTINGS_DIR / 'model_second_part.pt',weights_only=True))
+
+    params = read_constants(lambdas_path=DEFAULT_SETTINGS_DIR / 'lambdas',lambdas_column_name='lambdas',cte_path=DEFAULT_SETTINGS_DIR / 'cte.csv',tensor = True,my_device = 'cpu',dict=False,precision=torch.float32)
+    perturbations = torch.load(DEFAULT_SETTINGS_DIR / 'perturbations_diim.pt')
+    params.perturb_parameters(perturbations)
+
+    model.constant = params
+    data = customTensorData(data_path=DEFAULT_SETTINGS_DIR / 'npy_data',x_data_filename='buossoi_x_data.pt',y_data_filename='buossoi_y_data.pt',dates_filename='dates.pt',device = 'cpu').to('cpu')
+    dataloader = DataLoader(data, batch_size=5, shuffle=False)
+
+    assert ((next(iter(dataloader))[0].shape[1]==1) & (next(iter(dataloader))[0].shape[2]==1)), 'the current implementation of CVAE only supports pointwyse computations, latitude and longitude dimention has to be 1.'
+
+
+
+    X,Y = next(iter(dataloader))
+
+    
+    data_rearanged = torch.empty((X.shape[0],1,17))
+    data_rearanged[:,0,:5] = (Y[:,0,0,0,:]  - model.x_add[:5].unsqueeze(0))/model.x_mul[:5].unsqueeze(0)
+    data_rearanged[:,0,5:10] = (X[:,0,0,0,:,0] - model.x_add[5:10].unsqueeze(0))/model.x_mul[5:10].unsqueeze(0)
+    data_rearanged[:,0,10:15] = (X[:,0,0,0,:,1] - model.x_add[10:15].unsqueeze(0))/model.x_mul[10:15].unsqueeze(0)
+    data_rearanged[:,0,15] = (X[:,0,0,0,0,3] - model.x_add[15].unsqueeze(0))/model.x_mul[15].unsqueeze(0)
+    data_rearanged[:,0,16] = (X[:,0,0,0,0,4] - model.x_add[16].unsqueeze(0))/model.x_mul[16].unsqueeze(0)
+    
+    mu,cov = model.forward(data_rearanged)
+
+    
+    chla = torch.exp(mu[:,0]+ (cov[:,0,0]**2)/2)
+    print(chla)
+    plt.scatter(np.arange(len(chla)),chla.detach().numpy())
+    #plt.ylim(0,2.7)
+    plt.yscale('log')
+    plt.savefig('chla_CVAE.pdf')

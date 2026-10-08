@@ -1,0 +1,28 @@
+import dimpy.bayesian_inversion as bayes
+import os
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    original_dir = os.getcwd()
+    try:
+        os.chdir(script_dir)
+    except:
+        print('Attempt to move to', script_dir,'where absortion and scattering coeficients are store failed.')
+        
+    output = bayes.main(device='cpu',
+                  precision=torch.float64,
+                  data_path= DEFAULT_SETTINGS_DIR / 'npy_data',
+                  x_data_filename='buossoi_x_data.pt',
+                  y_data_filename='buossoi_y_data.pt',
+                  dates_filename='dates.pt',
+                  N=500,
+                  batch_size=50,
+                  lambdas_path=DEFAULT_SETTINGS_DIR / 'lambdas',
+                  lambdas_column_name='lambdas',
+                  cte_path=DEFAULT_SETTINGS_DIR / 'cte.csv',
+                  perturbations_path=DEFAULT_SETTINGS_DIR / 'perturbations_diim.pt',
+                  verbose=True,
+                  output_path = None,
+                  prefix = '',
+                  calc_kd = True,
+                  calc_bbp = True,
+                  num_threads = 60)
