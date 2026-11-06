@@ -198,7 +198,7 @@ def D_(Bs,Bu,Cs,Cu,flags=False):
     return (0.5) * (Cs + Cu + ( (Cs + Cu)**2 - 4. * Bs * Bu )**(0.5))
 
 @torch.jit.script
-def x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags=False):
+def x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags:bool=False):
     """
     """
     denominator = (cd - Cs) * (cd + Cu) + Bs * Bu
@@ -213,7 +213,7 @@ def x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags=False):
     return nominator/denominator
 
 @torch.jit.script
-def y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags=False):
+def y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags:bool=False):
     """
     """
     denominator = (cd - Cs) * (cd + Cu) + Bs * Bu
@@ -262,7 +262,7 @@ def E_dir(cd, Ediro, z=torch.tensor(0)):
     return Ediro*torch.exp(-z * cd)
 
 @torch.jit.script
-def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),flags=False):
+def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False):
     """
     """
     Rplus,Rminus = R_plus(Bs,Bu,Cs,Cu),R_minus(Bs,Bu,Cs,Cu)
@@ -276,7 +276,7 @@ def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),
 ##################################################################################
 ##################################################################################
 @torch.jit.script
-def three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0),dz=torch.tensor(0),flags=False):
+def three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False):
     a,b,bb = a_b_bb(lambda_,PAR,chla,NAP,CDOM,params)
     Bs,Bu,Bd,Cs,Cu,cd,Fd = second_layer(a,b,bb,zenith,params)
     Rplus,Rminus,Explus,Exminus,x,y,Edir = third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z,dz,flags)
