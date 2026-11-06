@@ -192,7 +192,7 @@ def second_layer(a,b,bb,zenith,params:AbsorptionParams):
 ##########################################################################
 
 @torch.jit.script
-def D_(Bs,Bu,Cs,Cu,flags=False):
+def D_(Bs,Bu,Cs,Cu):
     """
     """
     return (0.5) * (Cs + Cu + ( (Cs + Cu)**2 - 4. * Bs * Bu )**(0.5))
