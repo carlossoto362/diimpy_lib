@@ -14,8 +14,15 @@ from pathlib import Path
 from typing import Union
 from os import PathLike
 
-
-@torch.jit.script
+def optimize(func):
+    if hasattr(torch, "compile") and sys.version_info >= (3, 8):
+        return torch.compile(func)
+    elif hasattr(torch, "jit") and sys.version_info >= (3, 8):
+        return torch.jit.script(func)
+    else:
+        return func
+    
+@optimize
 class AbsorptionParams:
     def __init__(self,
                  absortion_PH: torch.Tensor,

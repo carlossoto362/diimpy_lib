@@ -6,13 +6,22 @@ import sys
 from typing import Union,Optional
 from diimpy.read_data_module import AbsorptionParams
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+#warnings.simplefilter(action='ignore', category=FutureWarning)
+import sys
+
+def optimize(func):
+    if hasattr(torch, "compile") and sys.version_info >= (3, 8):
+        return torch.compile(func)
+    elif hasattr(torch, "jit") and sys.version_info >= (3, 8):
+        return torch.jit.script(func)
+    else:
+        return func
 ###################################################################################################################################################################################################
 ############################################################################FUNCTIONS NEEDED TO DEFINE THE FORWARD MODEL###########################################################################
 ###################################################################################################################################################################################################
 
 ################Functions for the absortion coefitient####################
-@torch.jit.script
+@optimize
 def absorption_CDOM(lambda_,params: AbsorptionParams):
     """
     Function that returns the mass-specific absorption coefficient of CDOM, function dependent of the wavelength lambda. 
@@ -21,7 +30,7 @@ def absorption_CDOM(lambda_,params: AbsorptionParams):
     """
     return params.dCDOM*torch.exp(-(params.sCDOM)*(lambda_ - 450.))
 
-@torch.jit.script
+@optimize
 def absorption_NAP(lambda_,params: AbsorptionParams):
     """
     Mass specific absorption coefficient of NAP.
@@ -31,7 +40,7 @@ def absorption_NAP(lambda_,params: AbsorptionParams):
     """
     return params.dNAP*torch.exp(-params.sNAP*(lambda_ - 440.))
 
-@torch.jit.script
+@optimize
 def absorption(lambda_,chla,NAP,CDOM,params: AbsorptionParams):
     """
     Total absortion coeffitient.
@@ -46,7 +55,7 @@ def absorption(lambda_,chla,NAP,CDOM,params: AbsorptionParams):
     
 ##############Functions for the scattering coefitient########################
 
-@torch.jit.script
+@optimize
 def Carbon(chla,PAR,params: AbsorptionParams):
     """
     defined from the carbon to Chl-a ratio. 
@@ -62,7 +71,7 @@ def Carbon(chla,PAR,params: AbsorptionParams):
     denominator = params.Theta_o*(torch.exp(exponent)/(1+torch.exp(exponent))) + params.Theta_min
     return nominator/denominator
 
-@torch.jit.script
+@optimize
 def scattering_ph(lambda_,params: AbsorptionParams):
     """
     The scattering_ph is defined initially as a linear regression between the diferent scattering_ph for each lambda, and then, I
@@ -73,7 +82,7 @@ def scattering_ph(lambda_,params: AbsorptionParams):
     
     return params.linear_regression_slope_s *lambda_ + params.linear_regression_intercept_s
 
-@torch.jit.script
+@optimize
 def backscattering_ph(lambda_,params: AbsorptionParams):
     """
     The scattering_ph is defined initially as a linear regression between the diferent scattering_ph for each lambda, and then, I
@@ -84,7 +93,7 @@ def backscattering_ph(lambda_,params: AbsorptionParams):
     
     return params.linear_regression_slope_b *lambda_ + params.linear_regression_intercept_b
 
-@torch.jit.script
+@optimize
 def scattering_NAP(lambda_,params: AbsorptionParams):
     """
     NAP mass-specific scattering coefficient.
@@ -94,7 +103,7 @@ def scattering_NAP(lambda_,params: AbsorptionParams):
     """
     return params.eNAP*(550./lambda_)**params.fNAP
     
-@torch.jit.script
+@optimize
 def scattering(lambda_,PAR,chla,NAP,params: AbsorptionParams):
     """
     Total scattering coefficient.
@@ -109,7 +118,7 @@ def scattering(lambda_,PAR,chla,NAP,params: AbsorptionParams):
     
 #################Functions for the backscattering coefitient#############
 
-@torch.jit.script
+@optimize
 def backscattering(lambda_,PAR,chla,NAP,params: AbsorptionParams):
     """
     Total backscattering coefficient.
@@ -121,14 +130,14 @@ def backscattering(lambda_,PAR,chla,NAP,params: AbsorptionParams):
                 Carbon(chla,PAR,params) + params.br_nap * scattering_NAP(lambda_,params) * NAP
 
 
-@torch.jit.script
+@optimize
 def bbp(lambda_,PAR,chla,NAP,CDOM,params: AbsorptionParams):
     """
     """
     return backscattering_ph(lambda_,params) * \
                 Carbon(chla,PAR,params) + params.br_nap * scattering_NAP(lambda_,params) * NAP
 
-@torch.jit.script
+@optimize
 def a_b_bb(lambda_,PAR,chla,NAP,CDOM,params: AbsorptionParams):
     """
     """
@@ -137,50 +146,50 @@ def a_b_bb(lambda_,PAR,chla,NAP,CDOM,params: AbsorptionParams):
 ###############Functions for the end solution of the equations###########
 #The final result is written in terms of these functions, all the functions are functions of absorption, scattering and backscattering only. 
 
-@torch.jit.script
+@optimize
 def c_d(a,b, zenith): 
     """
     """
     return (a + b)/torch.cos(zenith*3.1416/180)
 
 
-@torch.jit.script
+@optimize
 def F_d(b,bb, zenith, params: AbsorptionParams):
     """
     """
     return (b - params.rd * bb)/torch.cos(zenith*3.1416/180.)
 
-@torch.jit.script
+@optimize
 def B_d(bb,zenith,params: AbsorptionParams):
     """
     """
     return  params.rd*bb/torch.cos(zenith*3.1416/180) 
 
-@torch.jit.script
+@optimize
 def C_s(a, bb, params: AbsorptionParams):
     """
     """
     return (a + params.rs * bb )/params.vs
 
-@torch.jit.script
+@optimize
 def B_u(bb, params: AbsorptionParams):
     """
     """
     return (params.ru * bb)/params.vu
 
-@torch.jit.script
+@optimize
 def B_s(bb, params: AbsorptionParams):
     """
     """
     return (params.rs * bb)/params.vs
 
-@torch.jit.script
+@optimize
 def C_u(a, bb, params: AbsorptionParams):
     """
     """
     return (a + params.ru * bb)/ params.vu
 
-@torch.jit.script
+@optimize
 def second_layer(a,b,bb,zenith,params:AbsorptionParams):
     """
     """
@@ -191,82 +200,84 @@ def second_layer(a,b,bb,zenith,params:AbsorptionParams):
 #######################THIRD LAYER########################################
 ##########################################################################
 
-@torch.jit.script
+@optimize
 def D_(Bs,Bu,Cs,Cu):
     """
     """
     return (0.5) * (Cs + Cu + ( (Cs + Cu)**2 - 4. * Bs * Bu )**(0.5))
 
-@torch.jit.script
-def x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags:bool=False):
+@optimize
+def x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags:bool=False) -> Union[torch.Tensor, list[torch.Tensor]]:
     """
     """
     denominator = (cd - Cs) * (cd + Cu) + Bs * Bu
     nominator = -(Cu + cd) * Fd - Bu * Bd
     flag = (denominator == 0)
-    if any(flag):
-        denominator[denominator==0] = 1
-        nominator[denominator == 0] = (z*Fd)[denominator==0]
+    if torch.any(flag):
+        denominator[flag] = 1
+        nominator[flag] = (z*Fd)[flag]
     if flags == True:
         return [nominator/denominator,flag]
 
     return nominator/denominator
 
-@torch.jit.script
-def y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags:bool=False):
+@optimize
+def y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z=torch.tensor(0),flags:bool=False) -> Union[torch.Tensor, list[torch.Tensor]]:
     """
     """
+    
     denominator = (cd - Cs) * (cd + Cu) + Bs * Bu
     nominator = -Bs * Fd + (cd - Cs) * Bd
     flag = (denominator == 0)
-    if any(flag):
-        denominator[denominator==0] = 1
-        nominator[denominator == 0] = (-z[denominator==0]*Bd[denominator==0])
+    if torch.any(flag):
+        denominator[flag] = 1
+        nominator[flag] = (-z*Bd)[flag]
     if flags == True:
         return [nominator/denominator,flag]
+
     return nominator/denominator
 
-@torch.jit.script
+@optimize
 def R_plus(Bs,Bu,Cs,Cu):
     """
     """
     return Bs / D_(Bs,Bu,Cs,Cu)
 
-@torch.jit.script
+@optimize
 def R_minus(Bs,Bu,Cs,Cu):
     """
     """
     return Bu / D_(Bs,Bu,Cs,Cu)
 
 
-@torch.jit.script
-def Exp_plus(Bs,Bu,Cs,Cu,dz=torch.tensor(0)):
+@optimize
+def Exp_plus(Bs,Bu,Cs,Cu,dz=torch.tensor(0),surface:bool=True):
     """
     """
-    if dz == 0:
+    if surface:
         return torch.tensor(1)
     return torch.exp(- (D_(Bs,Bu,Cs,Cu) - Cu) * dz)
 
-@torch.jit.script
-def Exp_minus(Bs,Bu,Cs,Cu,dz=torch.tensor(0)):
+@optimize
+def Exp_minus(Bs,Bu,Cs,Cu,dz=torch.tensor(0),surface:bool=True):
     """
     """
-    if dz == 0:
+    if surface:
         return torch.tensor(1)
     return torch.exp(- (D_(Bs,Bu,Cs,Cu) - Cs) * dz)
 
-@torch.jit.script
+@optimize
 def E_dir(cd, Ediro, z=torch.tensor(0)):
     """
     """
     return Ediro*torch.exp(-z * cd)
 
-@torch.jit.script
-def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False):
+@optimize
+def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False,surface:bool=True):
     """
     """
     Rplus,Rminus = R_plus(Bs,Bu,Cs,Cu),R_minus(Bs,Bu,Cs,Cu)
-    Explus,Exminus = Exp_plus(Bs,Bu,Cs,Cu,dz),Exp_minus(Bs,Bu,Cs,Cu,dz)
+    Explus,Exminus = Exp_plus(Bs,Bu,Cs,Cu,dz,surface),Exp_minus(Bs,Bu,Cs,Cu,dz,surface)
     y,Edir = y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z),E_dir(cd, Ediro, z)
     x = x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z,flags=flags)
     return Rplus,Rminus,Explus,Exminus,x,y,Edir
@@ -275,30 +286,30 @@ def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),
 
 ##################################################################################
 ##################################################################################
-@torch.jit.script
-def three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False):
+@optimize
+def three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False,surface:bool=True):
     a,b,bb = a_b_bb(lambda_,PAR,chla,NAP,CDOM,params)
     Bs,Bu,Bd,Cs,Cu,cd,Fd = second_layer(a,b,bb,zenith,params)
-    Rplus,Rminus,Explus,Exminus,x,y,Edir = third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z,dz,flags)
+    Rplus,Rminus,Explus,Exminus,x,y,Edir = third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z,dz,flags=flags,surface=surface)
     return Rplus,Rminus,Explus,Exminus,x,y,Edir
 
 
 #######################PARTICULAR SOLUTION########################################
 #######################INFINIT LAYER##############################################
 
-@torch.jit.script
+@optimize
 def C_plus(x, Ediro, Edifo):
     """
     """
     return Edifo - x * Ediro
 
-@torch.jit.script
+@optimize
 def E_u(Cplus,y,Explus,Rplus,Edir):
     """
     """
     return Cplus * Rplus * Explus  + y * Edir
 
-@torch.jit.script
+@optimize
 def E_dif(Cplus,x,Explus,Edir):
     """
     """
@@ -311,7 +322,7 @@ def E_dif(Cplus,x,Explus,Edir):
 
 ##########################from the bio-optical model to RRS(Remote Sensing Reflectance)##############################
 
-@torch.jit.script
+@optimize
 def Q_rs(zenith,params: AbsorptionParams):
     """
     Empirical result for the Radiance distribution function, 
@@ -321,7 +332,7 @@ def Q_rs(zenith,params: AbsorptionParams):
     """
     return (params.Qa)*torch.exp(-(params.Qb)*torch.sin((3.1416/180.0)*(90.0-zenith)))
 
-@torch.jit.script
+@optimize
 def Rrs_minus(Rrs,params: AbsorptionParams):
     """
     Empirical solution for the effect of the interface Atmosphere-sea.
@@ -331,7 +342,7 @@ def Rrs_minus(Rrs,params: AbsorptionParams):
     """
     return Rrs/(params.T+params.gammaQ*Rrs)
 
-@torch.jit.script
+@optimize
 def Rrs_plus(Rrs,params: AbsorptionParams):
     """
     Empirical solution for the effect of the interface Atmosphere-sea.
@@ -344,16 +355,18 @@ def Rrs_plus(Rrs,params: AbsorptionParams):
 
 ########################Compositions#############################
 
-@torch.jit.script
+@optimize
 def kd(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0)):
     """
     """
     Rplus,Rminus,Explus,Exminus,x,y,Edir = three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params,z)
+    if not torch.jit.isinstance(x, torch.Tensor):
+        x = x[0]
     Edif = E_dif(C_plus(x, Ediro, Edifo),x,Explus,Edir)
     return (z**-1)*torch.log((Ediro + Edifo)/(Edir + Edif))
 
 
-@torch.jit.script
+@optimize
 def Rrs_MODEL(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0)):
     """
     Remote Sensing Reflectance.
@@ -362,6 +375,10 @@ def Rrs_MODEL(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionPar
     of some of the constants of the bio quimical model. 
     """
     Rplus,Rminus,Explus,Exminus,x,y,Edir = three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params,z)
+    if not torch.jit.isinstance(x, torch.Tensor):
+        x = x[0]
+    if not isinstance(y, torch.Tensor):
+        y = y[0]
     Eu,Qrs = E_u(C_plus(x, Ediro, Edifo),y,Explus,Rplus,Edir),Q_rs(zenith,params)
     Rrs = Eu  / (Qrs*(Ediro + Edifo)   )
     return Rrs_plus( Rrs ,params)
@@ -449,7 +466,7 @@ class Forward_Model(nn.Module):
             
 ######Functions for error propagation########
 
-@torch.jit.script
+@optimize
 def error_propagation(df: torch.Tensor,sigma: torch.Tensor):
     error_ = df @  sigma @ torch.transpose(df,-2,-1)
     error = torch.diagonal(error_,dim1=-2,dim2=-1)
