@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: diimpy
 Version: 0.3.0
 Summary: Bayesian inversion tools for ocean colour
@@ -27,3 +27,4 @@ Requires-Dist: numba
 Requires-Dist: scikit-learn
 Requires-Dist: geopy
 Requires-Dist: torch
+Dynamic: license-file

@@ -7,7 +7,6 @@ import os
 import sys
 from typing import Union,Optional
 from diimpy.read_data_module import AbsorptionParams        
-
 ###################################################################################################################################################################################################
 ############################################################################FUNCTIONS NEEDED TO DEFINE THE FORWARD MODEL###########################################################################
 ###################################################################################################################################################################################################
@@ -125,7 +124,7 @@ def backscattering(lambda_,PAR,chla,NAP,params: AbsorptionParams):
 
 
 ###############Functions for the end solution of the equations###########
-#The final result is written in terms of these functions, see ...
+#The final result is written in terms of these functions, all the functions are functions of absorption, scattering and backscattering only. 
 
 @torch.jit.script
 def c_d(lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams): 
@@ -139,6 +138,7 @@ def c_d(lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams):
     """
     return (absortion(lambda_,chla,NAP,CDOM,params)\
             + scattering(lambda_,PAR,chla,NAP,params))/torch.cos(zenith*3.1416/180)
+
 
 @torch.jit.script
 def F_d(lambda_,zenith,PAR,chla,NAP,params: AbsorptionParams):
@@ -243,6 +243,7 @@ def x(lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams):
     perturbation_factors is a dictionary with all the parameters that are been optimices in this Model. Are multiplicative factors between 0 and 2, that modify the value
     of some of the constants of the bio quimical model.
     """
+    
     denominator = (c_d(lambda_,zenith,PAR,chla,NAP,CDOM,params) - \
                    C_s(lambda_,PAR,chla,NAP,CDOM,params)) * \
                    (c_d(lambda_,zenith,PAR,chla,NAP,CDOM,params) + \
@@ -482,20 +483,20 @@ class Forward_Model(nn.Module):
         if learning_perturbation_factors == True:
             self.perturbation_factors =  nn.Parameter(torch.ones(14, dtype=precision), requires_grad=True)
             self.perturbation_factors_names = [
-                '$\epsilon_{a,ph}$',
-                '$\epsilon_{slope,s,ph}$',
-                '$\epsilon_{intercept,s,ph}$',
-                '$\epsilon_{slope,b,ph}$',
-                '$\epsilon_{intercept,b,ph}$',
-                '$\epsilon_{d,cdom}$',
-                '$\epsilon_{s,cdom}$',
-                '$\epsilon_{q,a}$',
-                '$\epsilon_{q,b}$',
-                '$\epsilon_{theta,min}$',
-                '$\epsilon_{theta,o}$',
-                '$\epsilon_\\beta$',
-                '$\epsilon_\sigma$',
-                '$\epsilon_{br,nap}$',
+                '$\\epsilon_{a,ph}$',
+                '$\\epsilon_{slope,s,ph}$',
+                '$\\epsilon_{intercept,s,ph}$',
+                '$\\epsilon_{slope,b,ph}$',
+                '$\\epsilon_{intercept,b,ph}$',
+                '$\\epsilon_{d,cdom}$',
+                '$\\epsilon_{s,cdom}$',
+                '$\\epsilon_{q,a}$',
+                '$\\epsilon_{q,b}$',
+                '$\\epsilon_{theta,min}$',
+                '$\\epsilon_{theta,o}$',
+                '$\\epsilon_\\beta$',
+                '$\\epsilon_\\sigma$',
+                '$\\epsilon_{br,nap}$',
             ]
             
     def forward(self,x_data,constant:AbsorptionParams, chla: Optional[torch.Tensor] = None, axis : Optional[int]  = None ):
@@ -516,15 +517,14 @@ class Forward_Model(nn.Module):
         
         constant: instance of class AbsorptionParams. This is a required parameter.
         """
-        
         if self.learning_perturbations == True:
             constant.perturb_parameters(self.perturbation_factors)
         
 
         if self.learning_chla == True:
-            
             Rrs = Rrs_MODEL(x_data[...,0],x_data[...,1],x_data[...,2],\
                             x_data[...,3],x_data[...,4],torch.exp(self.chparam[...,0]),torch.exp(self.chparam[...,1]),torch.exp(self.chparam[...,2]),constant)
+            
             if axis is not None:
                 Rrs = Rrs[:,axis]
             return Rrs.to(self.precision)

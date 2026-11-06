@@ -6,7 +6,8 @@ from os import PathLike
 import torch
     
 from diimpy.read_data_module import read_constants
-from diimpy.Forward_module import Forward_Model,evaluate_model_class,RRS_loss
+from diimpy.Forward_module_v2 import Forward_Model,evaluate_model_class,RRS_loss
+import time
 
 if __name__ == "__main__":
     
@@ -16,23 +17,26 @@ if __name__ == "__main__":
     lat_size = 1
     lon_size = 1
     lambdas_dim = 5
-    x_data = torch.rand((batch_size,lat_size,lon_size,1,lambdas_dim,5))
+    x_data = torch.ones((batch_size,lat_size,lon_size,1,lambdas_dim,5)) #E_s,E_d,lambda,zenith,PAR
     
     params = read_constants(lambdas_path= data_path / '../lambdas',lambdas_column_name='lambdas',cte_path = data_path / '../cte.csv',tensor = True,my_device = 'cpu',dict=False,precision=torch.float32)
     perturbations = torch.load(DEFAULT_SETTINGS_DIR / 'perturbations_diim.pt')
     params.perturb_parameters(perturbations)
-    
-    model = Forward_Model(num_days = 10)
+
+    model = Forward_Model(num_days = 1)
+    model.eval()
     eval_f = evaluate_model_class(model,x_data)
     f_x = eval_f.model_der(model.chparam, params )
-    print(f_x.detach())
+    print(f_x)
+    
 
-    x_a = torch.zeros((lat_size,lon_size,1,3))
-    s_a = torch.eye(3)
-    s_e = torch.eye(5)
+    #x_a = torch.zeros((lat_size,lon_size,1,3))
+    #s_a = torch.eye(3)
+    #s_e = torch.eye(5)
 
-    loss = RRS_loss(x_a,s_a,s_e)
-    print(x_a.shape,model.chparam.shape)
-    print(loss.forward(torch.rand((batch_size,lat_size,lon_size,1,lambdas_dim)),f_x,model.chparam))
-    print(model.chparam)
+    #loss = RRS_loss(x_a,s_a,s_e)
+    #print(x_a.shape,model.chparam.shape)
+    #print(loss.forward(torch.rand((batch_size,lat_size,lon_size,1,lambdas_dim)),f_x,model.chparam))
+    #print(model.chparam)
+    
     
