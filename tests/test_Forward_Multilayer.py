@@ -20,8 +20,8 @@ if __name__ == "__main__":
     lon_size = 1
     lambdas_dim = 5
     
-    N = 6 #number of layers
-    H = 1 #maximum depth
+    N = 500 #number of layers
+    H = 500 #maximum depth
     dz = torch.zeros(H)+0.4 
     z = torch.linspace(0.1,H,steps=N+1) 
     dz = z[1:] - z[:-1]#depth of each layer 
@@ -55,5 +55,5 @@ if __name__ == "__main__":
     Rplus,Rminus,Explus,Exminus,xplus,xminus,yplus,yminus,Edir,cplus,cminus = mult.multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd)
     Edif = mult.Edif_multilayer(Rminus,Explus,xplus,Edir,cplus,cminus,Edifo)
     Eu = mult.Eu_multilayer(Rplus,Explus,yplus,Edir,cplus,cminus,Ediro,Exminus[...,0,:],yminus[...,0,:])
-    print(Edif)
+    print(Eu)
     

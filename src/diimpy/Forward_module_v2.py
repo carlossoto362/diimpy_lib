@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonA
+#!/usr/bin/env pythonAAA
 import torch
 from torch import nn
 import os
@@ -8,6 +8,7 @@ from diimpy.read_data_module import AbsorptionParams
 import warnings
 #warnings.simplefilter(action='ignore', category=FutureWarning)
 import sys
+import time
 
 def optimize(func):
     if hasattr(torch, "compile") and sys.version_info >= (3, 8):
@@ -270,17 +271,14 @@ def Exp_minus(Bs,Bu,Cs,Cu,dz=torch.tensor(0),surface:bool=True):
     return torch.exp(- (D_(Bs,Bu,Cs,Cu) - Cs) * dz)
 
 @optimize
-def E_dir(cd, Ediro, z=torch.tensor(0)):
-    """
-    """
-    if z.shape[-2] == 1:
-        return Ediro*torch.exp(-z * cd)
-    else:
-        output = torch.zeros(cd.shape)
-        output[...,0,:] = Ediro*torch.exp(-z[...,0,:] * cd[...,0,:])
-        for i in range(1,cd.shape[-2]):
-            output[...,i,:] = output[...,i-1,:] * torch.exp(-z[...,i,:]* cd[...,i,:])
-        return output
+def E_dir(cd, Ediro, dz=torch.tensor(0)):
+
+    if dz.shape[-2] == 1:
+        return Ediro * torch.exp(-dz * cd)
+    #init_time = time.time()
+    cumulative = torch.cumprod(torch.exp(-dz * cd), dim=-2)
+    #print(time.time()-init_time)
+    return Ediro * cumulative
             
 
 @optimize
@@ -289,7 +287,7 @@ def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),
     """
     Rplus,Rminus = R_plus(Bs,Bu,Cs,Cu),R_minus(Bs,Bu,Cs,Cu)
     Explus,Exminus = Exp_plus(Bs,Bu,Cs,Cu,dz,surface),Exp_minus(Bs,Bu,Cs,Cu,dz,surface)
-    y,Edir = y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z),E_dir(cd, Ediro, z)
+    y,Edir = y_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z),E_dir(cd, Ediro, dz)
     x = x_(Bs,Bu,Bd,Cs,Cu,cd,Fd,z,flags=flags)
     return Rplus,Rminus,Explus,Exminus,x,y,Edir
 
@@ -367,10 +365,10 @@ def Rrs_plus(Rrs,params: AbsorptionParams):
 ########################Compositions#############################
 
 @optimize
-def kd(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0)):
+def kd(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0),dz=torch.tensor(0)):
     """
     """
-    Rplus,Rminus,Explus,Exminus,x,y,Edir = three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params,z)
+    Rplus,Rminus,Explus,Exminus,x,y,Edir = three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params,z,dz)
     if not torch.jit.isinstance(x, torch.Tensor):
         x = x[0]
     Edif = E_dif(C_plus(x, Ediro, Edifo),x,Explus,Edir)
@@ -378,14 +376,14 @@ def kd(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=t
 
 
 @optimize
-def Rrs_MODEL(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0)):
+def Rrs_MODEL(Ediro,Edifo,lambda_,zenith,PAR,chla,NAP,CDOM,params: AbsorptionParams,z=torch.tensor(0),dz=torch.tensor(0)):
     """
     Remote Sensing Reflectance.
     Aas and Højerslev, 1999.
     perturbation_factors is a dictionary with all the parameters that are been optimices in this Model. Are multiplicative factors between 0 and 2, that modify the value
     of some of the constants of the bio quimical model. 
     """
-    Rplus,Rminus,Explus,Exminus,x,y,Edir = three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params,z)
+    Rplus,Rminus,Explus,Exminus,x,y,Edir = three_layers_composition(Ediro,lambda_,zenith,PAR,chla,NAP,CDOM,params,z,dz)
     if not torch.jit.isinstance(x, torch.Tensor):
         x = x[0]
     if not isinstance(y, torch.Tensor):
