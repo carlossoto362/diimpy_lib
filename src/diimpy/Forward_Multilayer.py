@@ -88,7 +88,7 @@ def Eu_multilayer(Rplus,Explus,yplus,Edir,cplus,cminus,Ediro,Exminuso,yminuso):
     output[...,1:,:] = cplus * Rplus * Explus + cminus + yplus * Edir
     return output
 
-def multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,reflectance_d,reflectance_s):
+def multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,reflectance_d=torch.tensor(0),reflectance_s=torch.tensor(0)):
     """
     """
     #Exponentials evaluated with the dz's, Edir, xminus and yminus evaluated with z = [0,z1,...,zn-1]. Rplus and minus dont requiere z. 
@@ -116,6 +116,13 @@ def multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,refl
     eta[...,0,:] = Rminus[...,0,:]*Exminus[...,0,:]
     eta[...,1:,:] = -Exminus[...,1:,:]*(1-Rplus[...,:-1,:]*Rminus[...,1:,:])
     gamma[...,:-1,:] = -(1 - Rminus[...,1:,:]*Rplus[...,1:,:])
+    beta[...,:-1,:] = (Rminus[...,:-1,:]-Rminus[...,1:,:])
+    if torch.any(beta==0):
+        beta[beta==0] += torch.rand(1)*0.0001
+    
+    zeta[...,1:,:] = (Rplus[...,:-1,:]-Rplus[...,1:,:])
+    if torch.any(zeta==0):
+        zeta[zeta==0] += torch.rand(1)*0.0001
 
     theta[...,0,:] = Edifo - Ediro*xminus[...,0,:]
     if torch.any(flags[...,0,:]).any():
@@ -125,20 +132,23 @@ def multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,refl
 
         w = ((Explus[...,i,:]*(1-Rplus[...,i,:]*Rminus[...,i+1,:]))/zeta[...,i,:])
         
-        beta[...,i,:], delta[...,i,:] = (Rminus[...,i,:]-Rminus[...,i+1,:]) - w * eta[...,i,:] , \
+        beta[...,i,:], delta[...,i,:] = beta[...,i,:] - w * eta[...,i,:] , \
             (xminus[...,i+1,:] - xplus[...,i,:] - (yminus[...,i+1,:] - yplus[...,i,:])*Rminus[...,i+1,:])*Edir[...,i,:] - w * theta[...,i,:]
         w =  ((1-Rminus[...,i,:]*Rplus[...,i,:])/beta[...,i,:])
-        zeta[...,i+1,:],theta[...,i+1,:] = (Rplus[...,i,:]-Rplus[...,i+1,:]) - w*gamma[...,i,:],\
+        zeta[...,i+1,:],theta[...,i+1,:] = zeta[...,i+1,:] - w*gamma[...,i,:],\
             (yminus[...,i+1,:] - yplus[...,i,:] - (xminus[...,i+1,:] - xplus[...,i,:])*Rplus[...,i,:])*Edir[...,i,:] - w * delta[...,i,:]
 
-    
+    w = (Rplus[...,-1,:] - reflectance_s)/(zeta[...,-1,:])
+    beta[...,-1,:],delta[...,-1,:] = (1-reflectance_s*Rminus[...,-1,:]) - w*eta[...,-1,:],\
+    (reflectance_s*xplus[...,-1,:] + reflectance_d - yplus[...,-1,:])
     cplus = torch.zeros((Bs.shape))
     cminus = torch.zeros((Bs.shape))
 
-    cplus[...,-1,:],cminus[...,-1,:] = theta[...,-1,:]/zeta[...,-1,:],0
-    for j in range(N-2,-1,-1):
-        cminus[...,j,:] = (delta[...,j,:] + (1-Rplus[...,j+1,:]*Rminus[...,j+1,:])*cplus[...,j+1,:])/beta[...,j,:]
+    cminus[...,-1,:] = delta[...,-1,:]/beta[...,-1,:]
+    for j in range(N-1,0,-1):
         cplus[...,j,:] = (theta[...,j,:] - eta[...,j,:]*cminus[...,j,:])/zeta[...,j,:]
+        cminus[...,j-1,:] = (delta[...,j-1,:] + (1-Rplus[...,j,:]*Rminus[...,j,:])*cplus[...,j,:])/beta[...,j-1,:]
+    cplus[...,0,:] = (theta[...,0,:] - eta[...,0,:]*cminus[...,0,:])/zeta[...,0,:]
     
     return Rplus,Rminus,Explus,Exminus,xplus,xminus,yplus,yminus,Edir,cplus,cminus
     
