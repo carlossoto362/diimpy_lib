@@ -55,5 +55,5 @@ if __name__ == "__main__":
     Rplus,Rminus,Explus,Exminus,xplus,xminus,yplus,yminus,Edir,cplus,cminus = mult.multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd)
     Edif = mult.Edif_multilayer(Rminus,Explus,xplus,Edir,cplus,cminus,Edifo)
     Eu = mult.Eu_multilayer(Rplus,Explus,yplus,Edir,cplus,cminus,Ediro,Exminus[...,0,:],yminus[...,0,:])
-    print(Eu)
+    print(Edif)
     
