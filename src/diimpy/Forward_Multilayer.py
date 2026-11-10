@@ -140,7 +140,7 @@ def multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,refl
 
     w = (Rplus[...,-1,:] - reflectance_s)/(zeta[...,-1,:])
     beta[...,-1,:],delta[...,-1,:] = (1-reflectance_s*Rminus[...,-1,:]) - w*eta[...,-1,:],\
-    (reflectance_s*xplus[...,-1,:] + reflectance_d - yplus[...,-1,:])
+    (reflectance_s*xplus[...,-1,:] + reflectance_d - yplus[...,-1,:]) * Edir[...,-1,:] - w * theta[...,-1,:]
     cplus = torch.zeros((Bs.shape))
     cminus = torch.zeros((Bs.shape))
 
