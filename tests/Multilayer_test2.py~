@@ -1,0 +1,45 @@
+import torch
+import numpy as np
+import scipy
+import matplotlib.pyplot as plt
+
+import diimpy.Forward_module_v2 as fm
+import diimpy.Forward_Multilayer as mult
+from diimpy.read_data_module import read_constants
+from diimpy.settings import DEFAULT_SETTINGS_DIR
+data_path = DEFAULT_SETTINGS_DIR
+
+batch_size = 1
+lat_size = 1
+lon_size = 1
+lambdas_dim = 5
+
+
+N=500
+z = np.linspace(0.001,1,N+1)
+dz = z[1:] - z[:-1]#depth of each layer
+z = z[:-1]#depth of the top part of each layer
+
+chlorophyll_density = (scipy.stats.beta.pdf(z, 2, 5))*0.5
+nap_density = (scipy.stats.beta.pdf(z, 3, 4)) * 6
+cdom_density = (scipy.stats.beta.pdf(z, 2, 5))*2
+PAR = (scipy.stats.beta.pdf(z, 1, 15))*10
+z= z*500
+
+plt.plot(chlorophyll_density,z,label='generated chl')
+plt.plot(nap_density,z,label='generated nap')
+plt.plot(cdom_density,z,label='generated cdom')
+plt.ylim(500,-10)
+plt.xlim(0,15)
+plt.legend()
+plt.xlabel("density [$\\mathrm{mg} \\quad \\mathrm{m}^{-3}$]")
+plt.ylabel("depth $[\\mathrm{m}]$")
+plt.show()
+
+plt.plot(PAR,z,'--',label='generated PAR')
+plt.ylim(500,-10)
+plt.xlim(0,200)
+plt.legend()
+plt.xlabel("PAR [$\\mathrm{W} \\quad \\mathrm{m}^{-2}$]")
+plt.ylabel("depth $[\\mathrm{m}]$")
+plt.show()

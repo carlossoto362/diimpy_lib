@@ -47,18 +47,9 @@ if __name__ == "__main__":
     params.perturb_parameters(perturbations)
     
     
-
     Bs,Bu,Bd,Cs,Cu,cd,Fd = fm.second_layer(a,b,bb,zenith,params)
     Rplus,Rminus,Explus,Exminus,xplus,xminus,yplus,yminus,Edir,cplus,cminus = mult.multilayer_parameters(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd)
     Edif = mult.Edif_multilayer(Rminus,Explus,xplus,Edir,cplus,cminus,Edifo)
     Eu = mult.Eu_multilayer(Rplus,Explus,yplus,Edir,cplus,cminus,Ediro,Exminus[...,0,:],yminus[...,0,:])
     print(Eu)
     
-    
-    
-
-    #model = Forward_Model(num_days = 1)
-    #model.eval()
-    #eval_f = evaluate_model_class(model,x_data)
-    #f_x = eval_f.model_der(model.chparam, params )
-    #print(f_x)
