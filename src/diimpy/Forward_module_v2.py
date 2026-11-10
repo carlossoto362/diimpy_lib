@@ -141,7 +141,13 @@ def bbp(lambda_,PAR,chla,NAP,CDOM,params: AbsorptionParams):
 def a_b_bb(lambda_,PAR,chla,NAP,CDOM,params: AbsorptionParams):
     """
     """
-    return absorption(lambda_,chla,NAP,CDOM,params),scattering(lambda_,PAR,chla,NAP,params),backscattering(lambda_,PAR,chla,NAP,params)
+    a = absorption(lambda_,chla,NAP,CDOM,params)
+    b = scattering(lambda_,PAR,chla,NAP,params)
+    bb = backscattering(lambda_,PAR,chla,NAP,params)
+    flag = ((bb[...,:-1,:] - bb[...,1:,:]) == 0)
+    if torch.any(flag):
+        bb[...,1:,:][flag] += (1E-9 * torch.rand(1))
+    return a,b,bb
 
 ###############Functions for the end solution of the equations###########
 #The final result is written in terms of these functions, all the functions are functions of absorption, scattering and backscattering only. 

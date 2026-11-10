@@ -40,13 +40,7 @@ def multilayer_parameters(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd):
     eta[...,1:,:] = -Exminus[...,1:,:]*(1-Rplus[...,:-1,:]*Rminus[...,1:,:])
     gamma[...,:-1,:] = -(1 - Rminus[...,1:,:]*Rplus[...,1:,:])
     beta[...,:-1,:] = (Rminus[...,:-1,:]-Rminus[...,1:,:])
-    if torch.any(beta==0):
-        beta[beta==0] = 1E-9 * torch.rand(1)
-        
     zeta[...,1:,:] = (Rplus[...,:-1,:]-Rplus[...,:-1,:])
-    if torch.any(beta==0):
-        zeta[zeta==0] = 1E-9 * torch.rand(1)
-
     theta[...,0,:] = Edifo - Ediro*xminus[...,0,:]
 
     
