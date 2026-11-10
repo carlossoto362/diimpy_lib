@@ -88,7 +88,7 @@ def Eu_multilayer(Rplus,Explus,yplus,Edir,cplus,cminus,Ediro,Exminuso,yminuso):
     output[...,1:,:] = cplus * Rplus * Explus + cminus + yplus * Edir
     return output
 
-def multilayer_parameters(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,reflectance_d,reflectance_s):
+def multilayer_parameters_reflectance(Ediro,Edifo,z,dz,Bs,Bu,Bd,Cs,Cu,cd,Fd,reflectance_d,reflectance_s):
     """
     """
     #Exponentials evaluated with the dz's, Edir, xminus and yminus evaluated with z = [0,z1,...,zn-1]. Rplus and minus dont requiere z. 
