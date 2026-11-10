@@ -273,7 +273,15 @@ def Exp_minus(Bs,Bu,Cs,Cu,dz=torch.tensor(0),surface:bool=True):
 def E_dir(cd, Ediro, z=torch.tensor(0)):
     """
     """
-    return Ediro*torch.exp(-z * cd)
+    if z.shape[-2] == 1:
+        return Ediro*torch.exp(-z * cd)
+    else:
+        output = torch.zeros(cd.shape)
+        output[...,0,:] = Ediro*torch.exp(-z[...,0,:] * cd[...,0,:])
+        for i in range(1,cd.shape[-2]):
+            output[...,i,:] = output[...,i-1,:] * torch.exp(-z[...,i,:]* cd[...,i,:])
+        return output
+            
 
 @optimize
 def third_layer(Bs,Bu,Bd,Cs,Cu,cd,Fd,Ediro,z=torch.tensor(0),dz=torch.tensor(0),flags:bool=False,surface:bool=True):
